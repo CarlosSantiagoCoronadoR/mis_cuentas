@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Finanzas</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mis Cuentas">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2344/2344132.png">
+    
+    <style>
+        :root { --primary: #2ecc71; --dark: #2c3e50; --danger: #e74c3c; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        .app-header { text-align: center; padding: 10px 0; }
+        .icon-box { font-size: 50px; margin-bottom: 10px; }
+        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        h2 { margin: 0 0 15px 0; font-size: 18px; color: var(--dark); border-bottom: 2px solid #eee; padding-bottom: 5px; }
+        .salary-input { width: 100%; font-size: 24px; font-weight: bold; border: none; color: var(--primary); outline: none; background: transparent; }
+        .input-group { display: flex; flex-direction: column; gap: 10px; }
+        input, button { padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; }
+        button { background: var(--primary); color: white; border: none; font-weight: bold; transition: 0.2s; }
+        button:active { transform: scale(0.98); opacity: 0.9; }
+        .delete-btn { background: transparent; color: var(--danger); padding: 5px; border: none; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { text-align: left; font-size: 12px; color: #888; text-transform: uppercase; padding: 5px; }
+        td { padding: 12px 5px; border-bottom: 1px solid #f9f9f9; font-size: 15px; }
+        .resumen-final { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+        .saldo-total { font-size: 28px; font-weight: 800; color: var(--dark); }
+        .status-badge { background: #e8f8f0; color: var(--primary); padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="app-header">
+    <div class="icon-box">💵</div>
+    <h1 style="font-size: 22px; margin: 0;">Cuentas de Carlos</h1>
+</div>
+
+<div class="card">
+    <h2>Mi Salario Mensual</h2>
+    <div style="display: flex; align-items: center;">
+        <span style="font-size: 24px; font-weight: bold; color: var(--primary);">$</span>
+        <input type="number" id="salarioInput" class="salary-input" value="2000000" oninput="actualizarTodo()">
+    </div>
+</div>
+
+<div class="card">
+    <h2>Agregar Gasto / Deuda</h2>
+    <div class="input-group">
+        <input type="text" id="nombreD" placeholder="¿Qué pagaste? (Ej: Nu)">
+        <input type="number" id="montoD" placeholder="Monto (incluyendo interés)">
+        <input type="date" id="fechaD">
+        <button onclick="agregarGasto()">+ Registrar Pago</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="resumen-final">
+        <div>
+            <span class="status-badge">DISPONIBLE</span>
+            <div id="saldoFinal" class="saldo-total">$0</div>
+        </div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Detalle</th>
+                <th>Monto</th>
+                <th>Vence</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="cuerpoTabla"></tbody>
+    </table>
+</div>
+
+<script>
+    // Carga los datos que ya tenemos
+    let gastos = JSON.parse(localStorage.getItem('misGastos')) || [
+        {id: 1, nombre: 'Casa', monto: 300000, fecha: ''},
+        {id: 2, nombre: 'Agua', monto: 50000, fecha: ''},
+        {id: 3, nombre: 'Luz', monto: 20000, fecha: ''},
+        {id: 4, nombre: 'Codensa', monto: 270000, fecha: ''},
+        {id: 5, nombre: 'Nu', monto: 200000, fecha: ''},
+        {id: 6, nombre: 'Claro', monto: 170000, fecha: ''},
+        {id: 7, nombre: 'GPS', monto: 31000, fecha: ''},
+        {id: 8, nombre: 'Movistar', monto: 130000, fecha: ''},
+        {id: 9, nombre: 'Cargador', monto: 30000, fecha: ''},
+        {id: 10, nombre: 'Repuestos', monto: 60000, fecha: ''},
+        {id: 11, nombre: 'Préstamo', monto: 300000, fecha: ''},
+        {id: 12, nombre: 'Tu Plan', monto: 80000, fecha: ''},
+        {id: 13, nombre: 'YouTube', monto: 30000, fecha: ''},
+        {id: 14, nombre: 'Comida Perro', monto: 40000, fecha: ''},
+        {id: 15, nombre: 'Moto', monto: 120000, fecha: ''}
+    ];
+
+    function actualizarTodo() {
+        const salario = document.getElementById('salarioInput').value;
+        const tabla = document.getElementById('cuerpoTabla');
+        tabla.innerHTML = '';
+        let totalGastos = 0;
+
+        gastos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+        gastos.forEach(g => {
+            totalGastos += parseFloat(g.monto);
+            tabla.innerHTML += `
+                <tr>
+                    <td><strong>${g.nombre}</strong></td>
+                    <td>$${parseFloat(g.monto).toLocaleString()}</td>
+                    <td><small style="color:#888">${g.fecha || '--'}</small></td>
+                    <td><button class="delete-btn" onclick="eliminarGasto(${g.id})">✕</button></td>
+                </tr>
+            `;
+        });
+
+        const saldo = salario - totalGastos;
+        document.getElementById('saldoFinal').innerText = `$${saldo.toLocaleString()}`;
+        localStorage.setItem('misGastos', JSON.stringify(gastos));
+    }
+
+    function agregarGasto() {
+        const nombre = document.getElementById('nombreD').value;
+        const monto = document.getElementById('montoD').value;
+        const fecha = document.getElementById('fechaD').value;
+
+        if(nombre && monto) {
+            gastos.push({id: Date.now(), nombre, monto, fecha});
+            actualizarTodo();
+            document.getElementById('nombreD').value = '';
+            document.getElementById('montoD').value = '';
+            document.getElementById('fechaD').value = '';
+        }
+    }
+
+    function eliminarGasto(id) {
+        if(confirm('¿Borrar este gasto?')) {
+            gastos = gastos.filter(g => g.id !== id);
+            actualizarTodo();
+        }
+    }
+
+    actualizarTodo();
+</script>
+
+</body>
+</html>
